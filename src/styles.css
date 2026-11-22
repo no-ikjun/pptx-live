@@ -1,0 +1,231 @@
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: #000;
+}
+
+body {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #191f28;
+}
+
+.viewport {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.stage.capture {
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+.stage.capture .slide {
+  animation: none !important;
+}
+
+.slide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+}
+
+.slide.fade-in {
+  animation-name: slide-fade;
+  animation-timing-function: ease-out;
+}
+
+@keyframes slide-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.blank {
+  position: fixed;
+  inset: 0;
+}
+
+.empty {
+  color: #8b95a1;
+  font-size: 15px;
+  padding: 32px;
+}
+
+.deck-list {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  color: #e5e8eb;
+}
+.deck-list h1 {
+  font-size: 24px;
+}
+.deck-list a {
+  color: #6f9bff;
+  font-size: 18px;
+  line-height: 2;
+}
+.deck-list code {
+  background: #333b48;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ---- presenter --------------------------------------------------------------- */
+
+.presenter {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  background: #191f28;
+  color: #e5e8eb;
+}
+.presenter-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.presenter-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.presenter-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.presenter-label {
+  font-size: 13px;
+  color: #8b95a1;
+  margin-top: 8px;
+}
+.presenter-end {
+  color: #8b95a1;
+}
+.presenter-notes {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 20px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ---- side panel (D key) ------------------------------------------------------ */
+
+.panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: flex-end;
+}
+.panel {
+  width: min(440px, 100vw);
+  height: 100%;
+  overflow-y: auto;
+  background: #fff;
+  color: #191f28;
+  padding: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  user-select: text;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.source-panel h2 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.source-panel h3 {
+  font-size: 14px;
+  color: #2b59c3;
+  margin: 0 0 8px;
+}
+.source-panel section {
+  padding: 16px 0;
+  border-top: 1px solid #e5e8eb;
+}
+.source-panel .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.source-panel .indent {
+  margin-left: 24px;
+}
+.source-panel .grow {
+  flex: 1;
+  min-width: 0;
+}
+.source-panel input:not([type]),
+.source-panel input[type='datetime-local'] {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid #d1d6db;
+  border-radius: 6px;
+}
+.source-panel button {
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 0;
+  background: #2b59c3;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.source-panel button.ghost {
+  background: #f2f4f6;
+  color: #4e5968;
+}
+.source-panel button.link {
+  background: none;
+  color: #2b59c3;
+  padding: 0 0 0 8px;
+  text-decoration: underline;
+}
+.source-panel .note {
+  color: #6b7684;
+  margin: 4px 0;
+}
+.source-panel .note.ok {
+  color: #0f7b6c;
+}
+.source-panel .note.err {
+  color: #e03131;
+}
+.source-panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.source-panel th,
+.source-panel td {
+  text-align: left;
+  padding: 4px 0;
+  border-bottom: 1px solid #f2f4f6;
+}
+.source-panel th {
+  color: #6b7684;
+  font-weight: 400;
+}
