@@ -5,12 +5,12 @@ import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, rate, summarize
 
 /**
  * 교육의 경제학 6조: the exam answers come from a Google Form's response sheet,
- * are graded here, and fill the result slides (15–18). Slides 10 and 12 get
+ * are graded here, and fill the result slides (15–19). Slides 10, 12 and 24 get
  * pausable countdowns in place of the PPT's timed animation.
  */
 
 const SHEET_ID = '1YF-k7SX1jh2KG1TmAgjwruE2-CFvjI4DzKiseO4AwCI'
-const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000 }
+const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000, 24: 5 * 60_000 }
 
 // ---- rehearsal data --------------------------------------------------------------
 
@@ -61,16 +61,54 @@ const TABLE_ROWS: Record<string, ((s: Summary, c: Condition) => Rate)[]> = {
   'Age Table': [(s, c) => s.questionRates[c][1], (s, c) => rate(s.byCondition[c], (r) => questionCorrect(r, 8))],
 }
 
+const cellText = (t: TableNode, row: number, col = 0) =>
+  t.rows[row]?.cells[col]?.paras.flatMap((p) => p.runs.map((r) => r.t)).join('').trim() ?? ''
+
 /**
  * Slide 16 row label → answer-key part. "7 (1)" → "7번 (1)", "3" → "3번", so each
  * sub-question of a 2-point item gets its own row and its own rate.
  */
 function partForRow(t: TableNode, row: number) {
-  const label = t.rows[row]?.cells[0]?.paras.flatMap((p) => p.runs.map((r) => r.t)).join('').trim() ?? ''
-  const m = label.match(/^(\d+)\s*(\(\d\))?$/)
+  const m = cellText(t, row).match(/^(\d+)\s*(\(\d\))?$/)
   if (!m) return undefined
   const id = m[2] ? `${m[1]}번 ${m[2]}` : `${m[1]}번`
   return PARTS.find((p) => p.id === id)
+}
+
+/** Slide 19 left table: how many people picked each difficulty (1 매우 쉬움 … 5 매우 어려움). */
+function difficultyCell(t: TableNode, row: number, col: number, s: Summary): ((p: Para) => ReturnType<typeof textLike>) | undefined {
+  const label = cellText(t, row)
+  const rs = label === '전체' ? CONDITIONS.flatMap((c) => s.byCondition[c]) : s.byCondition[ROW_NAME[label]]
+  if (!rs) return undefined
+  const ds = rs.map((r) => r.difficulty).filter((d): d is number => d !== null && d >= 1 && d <= 5)
+  if (!ds.length) return undefined
+  const head = cellText(t, 0, col)
+  if (head === '평균') return (p) => textLike(p, (ds.reduce((a, b) => a + b, 0) / ds.length).toFixed(1))
+  const level = Number(head)
+  if (!(level >= 1 && level <= 5)) return undefined
+  return (p) => textLike(p, String(ds.filter((d) => d === level).length))
+}
+
+/**
+ * Slide 19 right table: questions paired by what they test. "1번 …" rows show that
+ * question's full-credit rate; "묶음 평균" averages the two rates above it.
+ */
+function groupedCell(t: TableNode, row: number, c: Condition, s: Summary): ((p: Para) => ReturnType<typeof textLike>) | undefined {
+  const label = cellText(t, row)
+  const q = label.match(/^(\d+)번/)
+  if (q) return (p) => rateRuns(p, s.questionRates[c][Number(q[1])])
+  if (label !== '묶음 평균') return undefined
+  const pcts: number[] = []
+  for (let r = row - 1; r > 0; r--) {
+    const m = cellText(t, r).match(/^(\d+)번/)
+    if (!m) break
+    const v = pct(s.questionRates[c][Number(m[1])])
+    if (v === null) return undefined
+    pcts.push(v)
+  }
+  if (!pcts.length) return undefined
+  const avg = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length)
+  return (p) => textLike(p, `${avg}%`, { bold: true })
 }
 
 // ---- slides ----------------------------------------------------------------------
@@ -132,10 +170,22 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
     },
     17: tableSlide,
     18: tableSlide,
+    19: {
+      cell: (t, row, col) => {
+        if (row === 0 || col < 1) return undefined
+        const para =
+          t.name === 'Difficulty Table'
+            ? difficultyCell(t, row, col, summary)
+            : t.name === 'Grouped Accuracy Table'
+              ? groupedCell(t, row, CONDITIONS[col - 1], summary)
+              : undefined
+        return para && { para }
+      },
+    },
   }
 }
 
-/** Slides 10 and 12: digits and a smoothly draining bar, like the PPT's animation. */
+/** Slides 10, 12 and 24: digits and a smoothly draining bar, like the PPT's animation. */
 function timerSlide(left: number, duration: number, started: boolean): SlideOverrides {
   const done = left === 0
   const text = formatClock(left)
@@ -174,7 +224,7 @@ export default defineLive(({ slide }) => {
   const { timers, now, toggle, reset } = useCountdowns(TIMERS, slide)
 
   const slides: Record<number, SlideOverrides> = { ...resultSlides(summary) }
-  for (const n of [10, 12] as const) {
+  for (const n of [10, 12, 24] as const) {
     const t = timers[n]
     slides[n] = timerSlide(remaining(t, now), t.durationMs, t.startedAt !== null || t.elapsedMs > 0)
   }
