@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import { BoxView, RunSpan, SourcePanel, defineLive, formatClock, remaining, textLike, useCountdowns, useCsvSource, type Para, type SlideOverrides } from '../../src/live'
+import { BoxView, RunSpan, SourcePanel, defineLive, formatClock, remaining, textLike, useCountdowns, useCsvSource, type Para, type SlideOverrides, type TableNode } from '../../src/live'
 import { MAX_SCORE, PARTS } from './answerKey'
 import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, rate, summarize, type Condition, type Rate, type Summary } from './grade'
 
 /**
  * 교육의 경제학 6조: the exam answers come from a Google Form's response sheet,
- * are graded here, and fill the result slides (15–19). Slides 10 and 12 get
+ * are graded here, and fill the result slides (15–18). Slides 10 and 12 get
  * pausable countdowns in place of the PPT's timed animation.
  */
 
@@ -59,7 +59,18 @@ const partRate = (s: Summary, c: Condition, id: string) => rate(s.byCondition[c]
 const TABLE_ROWS: Record<string, ((s: Summary, c: Condition) => Rate)[]> = {
   'Scholarship Table': [(s, c) => s.questionRates[c][3], (s, c) => partRate(s, c, '7번 (2)')],
   'Age Table': [(s, c) => s.questionRates[c][1], (s, c) => rate(s.byCondition[c], (r) => questionCorrect(r, 8))],
-  'Limit Table': [(s, c) => s.questionRates[c][5], (s, c) => s.questionRates[c][4], (s, c) => partRate(s, c, '12번 (2)')],
+}
+
+/**
+ * Slide 16 row label → answer-key part. "7 (1)" → "7번 (1)", "3" → "3번", so each
+ * sub-question of a 2-point item gets its own row and its own rate.
+ */
+function partForRow(t: TableNode, row: number) {
+  const label = t.rows[row]?.cells[0]?.paras.flatMap((p) => p.runs.map((r) => r.t)).join('').trim() ?? ''
+  const m = label.match(/^(\d+)\s*(\(\d\))?$/)
+  if (!m) return undefined
+  const id = m[2] ? `${m[1]}번 ${m[2]}` : `${m[1]}번`
+  return PARTS.find((p) => p.id === id)
 }
 
 // ---- slides ----------------------------------------------------------------------
@@ -111,7 +122,9 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
     16: {
       cell: (t, row, col) => {
         if (t.name !== 'Item Accuracy Table' || row === 0 || col < 2) return undefined
-        const r = summary.questionRates[CONDITIONS[col - 2]][row]
+        const part = partForRow(t, row)
+        if (!part) return undefined
+        const r = partRate(summary, CONDITIONS[col - 2], part.id)
         const v = pct(r)
         if (v === null) return undefined
         return { fill: HEAT[Math.min(4, Math.floor(v / 20))], para: (p) => rateRuns(p, r, v >= 60) }
@@ -119,7 +132,6 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
     },
     17: tableSlide,
     18: tableSlide,
-    19: tableSlide,
   }
 }
 
