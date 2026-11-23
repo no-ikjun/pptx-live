@@ -5,12 +5,12 @@ import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, rate, summarize
 
 /**
  * 교육의 경제학 6조: the exam answers come from a Google Form's response sheet,
- * are graded here, and fill the result slides (13–17). Slides 8 and 10 get
+ * are graded here, and fill the result slides (15–19). Slides 10 and 12 get
  * pausable countdowns in place of the PPT's timed animation.
  */
 
 const SHEET_ID = '1YF-k7SX1jh2KG1TmAgjwruE2-CFvjI4DzKiseO4AwCI'
-const TIMERS = { 8: 13 * 60_000, 10: 7 * 60_000 }
+const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000 }
 
 // ---- rehearsal data --------------------------------------------------------------
 
@@ -51,7 +51,7 @@ function rateRuns(p: Para, r: Rate, light = false) {
   )
 }
 
-// Slide 14 legend: 0–20, 20–40, 40–60, 60–80, 80–100 %.
+// Slide 16 legend: 0–20, 20–40, 40–60, 60–80, 80–100 %.
 const HEAT = ['#EEF3FC', '#C9D7F4', '#94B0E8', '#5C85D6', '#2B59C3']
 const ROW_NAME: Record<string, Condition> = { AI: 'ai', '학습 도우미': 'helper', 독학: 'self' }
 const partRate = (s: Summary, c: Condition, id: string) => rate(s.byCondition[c], (r) => r.parts[id] === 1)
@@ -75,7 +75,7 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
     },
   }
   return {
-    13: {
+    15: {
       // The PPT's own scatter chart, with participants stacked per score and the means as diamonds.
       chart: (c) => {
         const series = c.chart.series.map((s, i) => {
@@ -108,7 +108,7 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
         return { para: (p) => textLike(p, text) }
       },
     },
-    14: {
+    16: {
       cell: (t, row, col) => {
         if (t.name !== 'Item Accuracy Table' || row === 0 || col < 2) return undefined
         const r = summary.questionRates[CONDITIONS[col - 2]][row]
@@ -117,13 +117,13 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
         return { fill: HEAT[Math.min(4, Math.floor(v / 20))], para: (p) => rateRuns(p, r, v >= 60) }
       },
     },
-    15: tableSlide,
-    16: tableSlide,
     17: tableSlide,
+    18: tableSlide,
+    19: tableSlide,
   }
 }
 
-/** Slides 8 and 10: digits and a smoothly draining bar, like the PPT's animation. */
+/** Slides 10 and 12: digits and a smoothly draining bar, like the PPT's animation. */
 function timerSlide(left: number, duration: number, started: boolean): SlideOverrides {
   const done = left === 0
   const text = formatClock(left)
@@ -162,7 +162,7 @@ export default defineLive(({ slide }) => {
   const { timers, now, toggle, reset } = useCountdowns(TIMERS, slide)
 
   const slides: Record<number, SlideOverrides> = { ...resultSlides(summary) }
-  for (const n of [8, 10] as const) {
+  for (const n of [10, 12] as const) {
     const t = timers[n]
     slides[n] = timerSlide(remaining(t, now), t.durationMs, t.startedAt !== null || t.elapsedMs > 0)
   }
