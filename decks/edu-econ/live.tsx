@@ -1,21 +1,22 @@
 import { useMemo } from 'react'
 import { BoxView, RunSpan, SourcePanel, defineLive, formatClock, remaining, textLike, useCountdowns, useCsvSource, type Para, type SlideOverrides, type TableNode } from '../../src/live'
 import { MAX_SCORE, PARTS } from './answerKey'
-import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, rate, summarize, type Condition, type Rate, type Summary } from './grade'
+import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, ranking, rate, summarize, type Condition, type Rate, type Summary } from './grade'
 
 /**
  * 교육의 경제학 6조: the exam answers come from a Google Form's response sheet,
- * are graded here, and fill the result slides (15–19). Slides 10, 12 and 24 get
- * pausable countdowns in place of the PPT's timed animation.
+ * are graded here, and fill the hall of fame (14) and the result slides (16–20).
+ * Slides 10, 12 and 25 get pausable countdowns in place of the PPT's timed
+ * animation.
  */
 
 const SHEET_ID = '1YF-k7SX1jh2KG1TmAgjwruE2-CFvjI4DzKiseO4AwCI'
-const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000, 24: 5 * 60_000 }
+const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000, 25: 5 * 60_000 }
 
 // ---- rehearsal data --------------------------------------------------------------
 
 function sampleCsv() {
-  const header = ['타임스탬프', '자신이 속한 조는?', ...PARTS.map((p) => p.id), '이번 시험의 난이도는 어땠나요?']
+  const header = ['타임스탬프', '이름을 알려주세요', '자신이 속한 조는?', ...PARTS.map((p) => p.id), '이번 시험의 난이도는 어땠나요?']
   const labels = { ai: 'AI 활용', helper: '학습 도우미에게 질문 가능', self: '독학' }
   const skill = { ai: 0.62, helper: 0.72, self: 0.66 }
   let seed = 7
@@ -29,7 +30,8 @@ function sampleCsv() {
         if (p.kind === 'yesno') return right ? p.answer : '예'
         return right ? p.answer : (p.answer as number) + 10
       })
-      rows.push(['2026. 11. 25 오후 3:30:00', labels[c], ...cells, String(1 + Math.floor(rand() * 5))].join(','))
+      const minute = String(10 + Math.floor(rand() * 50)).padStart(2, '0')
+      rows.push([`2026. 11. 25 오후 3:${minute}:00`, `${CONDITION_LABEL[c]} ${i + 1}`, labels[c], ...cells, String(1 + Math.floor(rand() * 5))].join(','))
     }
   return rows.join('\n')
 }
@@ -51,7 +53,7 @@ function rateRuns(p: Para, r: Rate, light = false) {
   )
 }
 
-// Slide 16 legend: 0–20, 20–40, 40–60, 60–80, 80–100 %.
+// Slide 17 legend: 0–20, 20–40, 40–60, 60–80, 80–100 %.
 const HEAT = ['#EEF3FC', '#C9D7F4', '#94B0E8', '#5C85D6', '#2B59C3']
 const ROW_NAME: Record<string, Condition> = { AI: 'ai', '학습 도우미': 'helper', 독학: 'self' }
 const partRate = (s: Summary, c: Condition, id: string) => rate(s.byCondition[c], (r) => r.parts[id] === 1)
@@ -65,7 +67,7 @@ const cellText = (t: TableNode, row: number, col = 0) =>
   t.rows[row]?.cells[col]?.paras.flatMap((p) => p.runs.map((r) => r.t)).join('').trim() ?? ''
 
 /**
- * Slide 16 row label → answer-key part. "7 (1)" → "7번 (1)", "3" → "3번", so each
+ * Slide 17 row label → answer-key part. "7 (1)" → "7번 (1)", "3" → "3번", so each
  * sub-question of a 2-point item gets its own row and its own rate.
  */
 function partForRow(t: TableNode, row: number) {
@@ -75,7 +77,7 @@ function partForRow(t: TableNode, row: number) {
   return PARTS.find((p) => p.id === id)
 }
 
-/** Slide 19 left table: how many people picked each difficulty (1 매우 쉬움 … 5 매우 어려움). */
+/** Slide 20 left table: how many people picked each difficulty (1 매우 쉬움 … 5 매우 어려움). */
 function difficultyCell(t: TableNode, row: number, col: number, s: Summary): ((p: Para) => ReturnType<typeof textLike>) | undefined {
   const label = cellText(t, row)
   const rs = label === '전체' ? CONDITIONS.flatMap((c) => s.byCondition[c]) : s.byCondition[ROW_NAME[label]]
@@ -90,7 +92,7 @@ function difficultyCell(t: TableNode, row: number, col: number, s: Summary): ((p
 }
 
 /**
- * Slide 19 right table: questions paired by what they test. "1번 …" rows show that
+ * Slide 20 right table: questions paired by what they test. "1번 …" rows show that
  * question's full-credit rate; "묶음 평균" averages the two rates above it.
  */
 function groupedCell(t: TableNode, row: number, c: Condition, s: Summary): ((p: Para) => ReturnType<typeof textLike>) | undefined {
@@ -123,8 +125,20 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
       return { para: (p) => rateRuns(p, r) }
     },
   }
+  // Hall of fame: "Rank 1 Card" … "Rank 3 Card" hold "[이름]" and "[조건] · [N]점".
+  const top = ranking(CONDITIONS.flatMap((c) => summary.byCondition[c]))
   return {
-    15: {
+    14: {
+      box: (s) => {
+        const m = s.name.match(/^Rank (\d) Card$/)
+        if (!m) return undefined
+        const r = top[Number(m[1]) - 1]
+        // Before anyone has submitted, show a dash instead of the PPT's placeholders.
+        const lines = r ? [r.name || '이름 없음', `${CONDITION_LABEL[r.condition]} · ${r.score}점`] : ['—', '\u00a0']
+        return { para: (p, i) => textLike(p, lines[i] ?? '') }
+      },
+    },
+    16: {
       // The PPT's own scatter chart, with participants stacked per score and the means as diamonds.
       chart: (c) => {
         const series = c.chart.series.map((s, i) => {
@@ -157,7 +171,7 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
         return { para: (p) => textLike(p, text) }
       },
     },
-    16: {
+    17: {
       cell: (t, row, col) => {
         if (t.name !== 'Item Accuracy Table' || row === 0 || col < 2) return undefined
         const part = partForRow(t, row)
@@ -168,9 +182,9 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
         return { fill: HEAT[Math.min(4, Math.floor(v / 20))], para: (p) => rateRuns(p, r, v >= 60) }
       },
     },
-    17: tableSlide,
     18: tableSlide,
-    19: {
+    19: tableSlide,
+    20: {
       cell: (t, row, col) => {
         if (row === 0 || col < 1) return undefined
         const para =
@@ -224,7 +238,7 @@ export default defineLive(({ slide }) => {
   const { timers, now, toggle, reset } = useCountdowns(TIMERS, slide)
 
   const slides: Record<number, SlideOverrides> = { ...resultSlides(summary) }
-  for (const n of [10, 12, 24] as const) {
+  for (const n of [10, 12, 25] as const) {
     const t = timers[n]
     slides[n] = timerSlide(remaining(t, now), t.durationMs, t.startedAt !== null || t.elapsedMs > 0)
   }

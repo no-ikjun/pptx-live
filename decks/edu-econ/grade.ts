@@ -9,6 +9,8 @@ export type Response = {
   /** Row number in the sheet (2 = first response), used only for de-duplication and debugging. */
   row: number
   timestamp: Date | null
+  /** As typed in the form; shown on the hall-of-fame slide. */
+  name: string
   condition: Condition
   /** Points per part id (0 or 1). */
   parts: Record<string, 0 | 1>
@@ -103,6 +105,7 @@ export function parseCsv(text: string): ParseResult {
   const cols = header.map(normalizeHeader)
   const idx = (pred: (h: string) => boolean) => cols.findIndex(pred)
   const tsCol = idx((h) => h.includes('타임스탬프') || /timestamp/i.test(h))
+  const nameCol = idx((h) => h.includes('이름'))
   const condCol = idx((h) => h.includes('조는') || h.includes('속한') || h.includes('조건'))
   const diffCol = idx((h) => h.includes('난이도'))
   const partCol = Object.fromEntries(PARTS.map((p) => [p.id, cols.indexOf(p.id)]))
@@ -127,6 +130,7 @@ export function parseCsv(text: string): ParseResult {
     responses.push({
       row: i + 2,
       timestamp: tsCol >= 0 ? parseTimestamp(r[tsCol] ?? '') : null,
+      name: nameCol >= 0 ? (r[nameCol] ?? '').trim() : '',
       condition,
       parts,
       blanks,
@@ -138,6 +142,16 @@ export function parseCsv(text: string): ParseResult {
 }
 
 // ---- statistics --------------------------------------------------------------
+
+/**
+ * Hall-of-fame order: higher score first; on a tie the earlier submission wins.
+ * Form timestamps are whole seconds, so the sheet row (submission order) breaks
+ * what the clock cannot.
+ */
+export function ranking(responses: Response[]) {
+  const t = (r: Response) => r.timestamp?.getTime() ?? Infinity
+  return [...responses].sort((a, b) => b.score - a.score || t(a) - t(b) || a.row - b.row)
+}
 
 export type Rate = { correct: number; total: number }
 
