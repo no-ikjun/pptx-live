@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { BoxView, RunSpan, SourcePanel, defineLive, formatClock, remaining, textLike, useCountdowns, useCsvSource, type Para, type SlideOverrides, type TableNode } from '../../src/live'
+import { BoxView, RunSpan, SourcePanel, defineLive, formatClock, remaining, textLike, useCountdowns, useCsvSource, type Effect, type Para, type Shape, type Slide, type SlideOverrides, type Step, type TableNode } from '../../src/live'
 import { MAX_SCORE, PARTS } from './answerKey'
 import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, ranking, rate, summarize, type Condition, type Rate, type Summary } from './grade'
 
@@ -200,6 +200,29 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
 }
 
 /** Slides 10, 12 and 24: digits and a smoothly draining bar, like the PPT's animation. */
+/**
+ * Hall of fame (slide 14): one click per podium, 3rd place first, like an awards
+ * announcement. The block rises, then the card fades in, then the medal pops.
+ * Cards and blocks are named "Rank N …"; a medal belongs to the card it sits above.
+ */
+function podiumSteps(slide: Slide): Step[] {
+  const cards = slide.shapes.filter((s) => /^Rank \d Card$/.test(s.name))
+  const rankOf = (s: Shape) => {
+    const m = s.name.match(/^Rank (\d) (Card|Block)$/)
+    if (m) return Number(m[1])
+    if (s.kind !== 'image') return undefined
+    const card = cards.find((c) => s.x + s.w / 2 >= c.x && s.x + s.w / 2 <= c.x + c.w)
+    return card && Number(card.name.match(/\d/)![0])
+  }
+  const effect = (s: Shape): Effect =>
+    /Block$/.test(s.name)
+      ? { target: s.id, cls: 'entr', kind: 'wipe', dir: 'u', delay: 0, dur: 550 }
+      : s.kind === 'image'
+        ? { target: s.id, cls: 'entr', kind: 'zoom', delay: 550, dur: 450 }
+        : { target: s.id, cls: 'entr', kind: 'fade', delay: 300, dur: 450 }
+  return [3, 2, 1].map((rank) => ({ auto: false, effects: slide.shapes.filter((s) => rankOf(s) === rank).map(effect) }))
+}
+
 function timerSlide(left: number, duration: number, started: boolean): SlideOverrides {
   const done = left === 0
   const text = formatClock(left)
@@ -286,4 +309,4 @@ export default defineLive(({ slide }) => {
       </SourcePanel>
     ),
   }
-})
+}, { steps: { 14: podiumSteps } })

@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { Deck } from './model'
 import { DeckApp } from './engine/DeckApp'
-import { defineLive, type LiveHook } from './engine/live'
+import { defineLive, withLiveSteps, type LiveHook } from './engine/live'
 import './styles.css'
 
 // Every folder in decks/ with a deck.json is a deck. Its live.tsx is optional.
@@ -29,7 +29,7 @@ function Root() {
     }
     const live = liveFiles[`../decks/${name}/live.tsx`]
     Promise.all([load(), live ? live() : Promise.resolve(noLive)])
-      .then(([deck, hook]) => setLoaded({ deck, live: hook }))
+      .then(([deck, hook]) => setLoaded({ deck: withLiveSteps(deck, hook), live: hook }))
       .catch((e) => setError(String(e)))
   }, [name])
 

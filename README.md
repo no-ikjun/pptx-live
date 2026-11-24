@@ -70,6 +70,8 @@ export default defineLive(() => {
 | `replace(shape)` | 도형을 통째로 바꿔요. `null`이면 숨겨요. |
 | `builds: false` | 그 슬라이드의 PPT 애니메이션을 끄고 직접 그려요. |
 
+PPT에 없는 클릭 애니메이션은 `defineLive(hook, { steps: { 14: (slide) => [...] } })`처럼 더할 수 있어요. 슬라이드 번호별로 PPT의 애니메이션 대신 쓰여요. 효과는 `shape.id`를 가리키고, 나타내기·페이드·닦아내기·날아오기·확대를 쓸 수 있어요.
+
 함께 들어 있는 도구(`src/live`):
 
 - **`useCsvSource`:** 구글 시트를 몇 초마다 읽어요. CSV 파일 끌어다 놓기와 샘플 데이터도 지원하고, 마지막으로 받은 데이터를 브라우저에 저장해요.

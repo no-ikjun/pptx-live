@@ -117,15 +117,21 @@ function useNav(deck: Deck, channelName: string) {
 
   const prev = useCallback(() => {
     setNav((n) => {
-      const last = n.clock.clicks.reduce<number>((acc, t, i) => (t !== undefined ? i : acc), -1)
-      if (!n.clock.done && last >= 0) {
-        const clicks = n.clock.clicks.slice(0, last)
-        return { pos: n.pos, clock: { ...n.clock, clicks } }
+      // A slide entered backwards shows every build; undo them one click at a
+      // time from there, like PowerPoint.
+      const steps = visible[n.pos]?.steps ?? []
+      const clock: BuildClock = n.clock.done
+        ? { slideStart: 0, clicks: steps.map((s) => (s.auto ? undefined : 0)), done: false }
+        : n.clock
+      const last = clock.clicks.reduce<number>((acc, t, i) => (t !== undefined ? i : acc), -1)
+      if (last >= 0) {
+        const clicks = clock.clicks.slice(0, last)
+        return { pos: n.pos, clock: { ...clock, clicks } }
       }
       if (n.pos === 0) return n
       return { pos: n.pos - 1, clock: doneClock() }
     })
-  }, [])
+  }, [visible])
 
   return { visible, nav, goTo, next, prev }
 }

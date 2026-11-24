@@ -1,11 +1,11 @@
 /** Everything a deck's live.tsx usually needs. */
-export { defineLive, type LiveContext, type LiveResult } from '../engine/live'
+export { defineLive, type LiveContext, type LiveOptions, type LiveResult } from '../engine/live'
 export { RunSpan, BoxView, type BoxOverride, type CellOverride, type SlideOverrides } from '../engine/render'
 export { formatNumber } from '../engine/Chart'
 export { useCsvSource, sheetCsvUrl, sheetIdFrom, type CsvSource } from './source'
 export { SourcePanel } from './SourcePanel'
 export { useCountdowns, formatClock, remaining, type Countdown } from './countdown'
-export type { Para, Run, Shape, ShapeNode, TableNode, ChartNode, Deck } from '../model'
+export type { Para, Run, Shape, ShapeNode, TableNode, ChartNode, Deck, Slide, Step, Effect } from '../model'
 
 import type { ReactNode } from 'react'
 import { RunSpan } from '../engine/render'
