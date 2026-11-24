@@ -6,12 +6,12 @@ import { CONDITIONS, CONDITION_LABEL, parseCsv, questionCorrect, ranking, rate, 
 /**
  * 교육의 경제학 6조: the exam answers come from a Google Form's response sheet,
  * are graded here, and fill the hall of fame (14) and the result slides (16–20).
- * Slides 10, 12 and 25 get pausable countdowns in place of the PPT's timed
+ * Slides 10, 12 and 26 get pausable countdowns in place of the PPT's timed
  * animation.
  */
 
 const SHEET_ID = '1YF-k7SX1jh2KG1TmAgjwruE2-CFvjI4DzKiseO4AwCI'
-const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000, 25: 5 * 60_000 }
+const TIMERS = { 10: 13 * 60_000, 12: 7 * 60_000, 26: 5 * 60_000 }
 
 // ---- rehearsal data --------------------------------------------------------------
 
@@ -199,7 +199,7 @@ function resultSlides(summary: Summary): Record<number, SlideOverrides> {
   }
 }
 
-/** Slides 10, 12 and 24: digits and a smoothly draining bar, like the PPT's animation. */
+/** Slides 10, 12 and 26: digits and a smoothly draining bar, like the PPT's animation. */
 /**
  * Hall of fame (slide 14): one click per podium, 3rd place first, like an awards
  * announcement. The block rises, then the card fades in, then the medal pops.
@@ -261,7 +261,7 @@ export default defineLive(({ slide }) => {
   const { timers, now, toggle, reset } = useCountdowns(TIMERS, slide)
 
   const slides: Record<number, SlideOverrides> = { ...resultSlides(summary) }
-  for (const n of [10, 12, 25] as const) {
+  for (const n of [10, 12, 26] as const) {
     const t = timers[n]
     slides[n] = timerSlide(remaining(t, now), t.durationMs, t.startedAt !== null || t.elapsedMs > 0)
   }
